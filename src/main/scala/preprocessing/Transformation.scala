@@ -231,6 +231,5 @@ object Transformation {
     }
     currentDf
   
-    df2
   }
 }
