@@ -87,8 +87,7 @@ object Main {
     println("PIPELINE COMPLETED SUCCESSFULLY! ")
     println("="*80)
     println("\nOutput file: output/transformed_data.csv")
-    println("Your transformed dataset with all 41 columns is ready!")
-
+println(s"Your transformed dataset with all ${columns.length} columns is ready!")
     spark.stop()
   }
 }
