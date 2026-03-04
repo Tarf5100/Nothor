@@ -113,7 +113,7 @@ object Transformation {
       "Weather_Conditions",
       "Road_Surface_Conditions",
       "Light_Conditions",
-      "Urban_or_Rural_Area",
+      "Urban_or_Rural_Area"
     ).filter(currentDf.columns.contains)
     
     println(s"  Categorical columns: ${categoricalColumns.mkString(", ")}")
@@ -143,6 +143,17 @@ object Transformation {
     }
 
     // =========================================================
+// STEP 4.1 – Drop original categorical columns
+// =========================================================
+println("\n[STEP 4.1] Dropping original categorical columns...")
+
+// Drop the original categorical columns
+currentDf = currentDf.drop(categoricalColumns: _*)
+
+println(s"  Dropped columns: ${categoricalColumns.mkString(", ")}")
+println(s"  Columns remaining: ${currentDf.columns.length}")
+
+    // =========================================================
     // STEP 5 – Feature Engineering
     // =========================================================
     println("\n[STEP 5] Engineering domain features...")
@@ -159,7 +170,7 @@ object Transformation {
       println(" Time_Period (morning/afternoon/evening/night)")
     }
 
-    
+
     
     // High risk conditions
     if (Seq("Weather_Conditions", "Road_Surface_Conditions", "Light_Conditions")
@@ -212,6 +223,10 @@ object Transformation {
     } else {
       println("  No new categorical features to encode")
     }
+   
+println("\n[STEP 6.1] Dropping original Time_Period column...")
+currentDf = currentDf.drop("Time_Period")
+println(s"  Dropped: Time_Period")
 
     // =========================================================
     // FINAL SUMMARY PART 2
