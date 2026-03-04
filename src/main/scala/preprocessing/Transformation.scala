@@ -144,16 +144,6 @@ object Transformation {
       currentDf = currentDf.withColumn(indexedColName, whenExpr.cast(IntegerType))
     }
 
-    // =========================================================
-// STEP 4.1 – Drop original categorical columns
-// =========================================================
-println("\n[STEP 4.1] Dropping original categorical columns...")
-
-// Drop the original categorical columns
-currentDf = currentDf.drop(categoricalColumns: _*)
-
-println(s"  Dropped columns: ${categoricalColumns.mkString(", ")}")
-println(s"  Columns remaining: ${currentDf.columns.length}")
 
     // =========================================================
     // STEP 5 – Feature Engineering
@@ -195,7 +185,7 @@ println(s"  Columns remaining: ${currentDf.columns.length}")
     }
 
     // =========================================================
-    // STEP 6 – Second Categorical Encoding for new features
+    //  Second Categorical Encoding for new features
     // =========================================================
     println("\n[STEP 6] Second encoding pass - encoding new features...")
     
@@ -226,9 +216,25 @@ println(s"  Columns remaining: ${currentDf.columns.length}")
       println("  No new categorical features to encode")
     }
    
-println("\n[STEP 6.1] Dropping original Time_Period column...")
-currentDf = currentDf.drop("Time_Period")
-println(s"  Dropped: Time_Period")
+ // =========================================================
+// STEP 7 – Drop original categorical columns
+// =========================================================
+println("\n Dropping original categorical columns...")
+
+// Drop the original categorical columns individually
+currentDf = currentDf
+  .drop("Road_Type")
+  .drop("Weather_Conditions")
+  .drop("Road_Surface_Conditions")
+  .drop("Light_Conditions")
+  .drop("Urban_or_Rural_Area")
+  .drop("Accident_Severity")
+  .drop("Day_of_Week")
+  .drop("Time_Period")
+
+println(s"  Dropped columns: Road_Type, Weather_Conditions, Road_Surface_Conditions, Light_Conditions, Urban_or_Rural_Area, Accident_Severity, Day_of_Week, Time_Period")
+println(s"  Columns remaining: ${currentDf.columns.length}")
+
 
     // =========================================================
     // FINAL SUMMARY PART 2
