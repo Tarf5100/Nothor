@@ -94,7 +94,7 @@ object Transformation {
       "Number_of_Casualties",
       "Hour_of_Day",
       "Latitude",
-      "Longitude"
+      "Longitude",
     ).filter(currentDf.columns.contains)
     
     numericColumns.foreach { colName =>
@@ -113,7 +113,9 @@ object Transformation {
       "Weather_Conditions",
       "Road_Surface_Conditions",
       "Light_Conditions",
-      "Urban_or_Rural_Area"
+      "Urban_or_Rural_Area",
+      "Accident_Severity",
+      "Day_of_Week" 
     ).filter(currentDf.columns.contains)
     
     println(s"  Categorical columns: ${categoricalColumns.mkString(", ")}")
