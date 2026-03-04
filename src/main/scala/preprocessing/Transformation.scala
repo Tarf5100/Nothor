@@ -113,12 +113,12 @@ object Transformation {
       "Weather_Conditions",
       "Road_Surface_Conditions",
       "Light_Conditions",
-      "Urban_or_Rural_Area"
+      "Urban_or_Rural_Area",
     ).filter(currentDf.columns.contains)
     
     println(s"  Categorical columns: ${categoricalColumns.mkString(", ")}")
     
-    // Index Encoding (for tree-based models)
+    // Index Encoding 
     println("\n  Using Index Encoding...")
     
     categoricalColumns.foreach { colName =>
@@ -147,16 +147,6 @@ object Transformation {
     // =========================================================
     println("\n[STEP 5] Engineering domain features...")
     
-    // Time-based features
-    if (currentDf.columns.contains("Date_std")) {
-      currentDf = currentDf
-        .withColumn("Day_of_Week", dayofweek(col("Date_std")))
-        .withColumn("Is_Weekend", 
-          when(dayofweek(col("Date_std")).isin(1, 7), 1).otherwise(0))
-        .withColumn("Month", month(col("Date_std")))
-        .withColumn("Quarter", quarter(col("Date_std")))
-      println(" Day_of_Week (1-7), Is_Weekend (0/1), Month (1-12), Quarter (1-4)")
-    }
     
     // Time period from hour
     if (currentDf.columns.contains("Hour_of_Day")) {
@@ -168,30 +158,8 @@ object Transformation {
       )
       println(" Time_Period (morning/afternoon/evening/night)")
     }
+
     
-    // Derived metrics
-    if (currentDf.columns.contains("Number_of_Vehicles") && 
-        currentDf.columns.contains("Number_of_Casualties")) {
-      currentDf = currentDf.withColumn(
-        "Vehicles_Per_Casualty",
-        when(col("Number_of_Casualties") > 0, 
-          round(col("Number_of_Vehicles") / col("Number_of_Casualties"), 2))
-        .otherwise(col("Number_of_Vehicles"))
-      )
-      println("Vehicles_Per_Casualty (safety ratio)")
-    }
-    
-    // Severity numeric score
-    if (currentDf.columns.contains("Accident_Severity")) {
-      currentDf = currentDf.withColumn(
-        "Severity_Score",
-        when(col("Accident_Severity") === "fatal", 3)
-        .when(col("Accident_Severity") === "serious", 2)
-        .when(col("Accident_Severity") === "slight", 1)
-        .otherwise(0)
-      )
-      println(" Severity_Score (3=fatal, 2=serious, 1=slight)")
-    }
     
     // High risk conditions
     if (Seq("Weather_Conditions", "Road_Surface_Conditions", "Light_Conditions")
@@ -211,6 +179,38 @@ object Transformation {
         ).otherwise(0)
       )
       println(" High_Risk_Conditions (risk indicator)")
+    }
+
+    // =========================================================
+    // STEP 6 – Second Categorical Encoding for new features
+    // =========================================================
+    println("\n[STEP 6] Second encoding pass - encoding new features...")
+    
+    val categoricalColumns2 = Seq("Time_Period").filter(currentDf.columns.contains)
+    
+    if (categoricalColumns2.nonEmpty) {
+      println(s"  New categorical columns: ${categoricalColumns2.mkString(", ")}")
+      
+      categoricalColumns2.foreach { colName =>
+        val indexedColName = s"${colName}_idx"
+        
+        val distinctValues = currentDf.select(colName).distinct()
+          .filter(col(colName).isNotNull)
+          .collect()
+          .map(_.getString(0))
+          .sorted
+        
+        println(s"    $colName → $indexedColName (${distinctValues.length} categories)")
+        
+        var whenExpr = when(col(colName).isNull, lit(null))
+        distinctValues.zipWithIndex.foreach { case (value, index) =>
+          whenExpr = whenExpr.when(col(colName) === value, lit(index))
+        }
+        
+        currentDf = currentDf.withColumn(indexedColName, whenExpr.cast(IntegerType))
+      }
+    } else {
+      println("  No new categorical features to encode")
     }
 
     // =========================================================
