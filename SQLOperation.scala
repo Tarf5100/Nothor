@@ -42,7 +42,7 @@ object SQLOperations {
         Weather_Conditions_idx,
         COUNT(*) AS severe_accidents
       FROM accidents
-      WHERE Accident_Severity_idx IN (1, 2)
+      WHERE Accident_Severity_idx IN (1, 0)
       GROUP BY Weather_Conditions_idx
       ORDER BY severe_accidents DESC
     """)
@@ -91,7 +91,7 @@ object SQLOperations {
         Weather_Conditions_idx,
         COUNT(*) AS severe_accidents
       FROM accidents
-      WHERE Accident_Severity_idx IN (1, 2)
+      WHERE Accident_Severity_idx IN (1,0)
       GROUP BY Weather_Conditions_idx
       HAVING COUNT(*) > 500
       ORDER BY severe_accidents DESC

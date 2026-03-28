@@ -23,7 +23,7 @@ object RDDOperations {
     val severeByWeather = rdd
       .filter(row => {
         val sev = row.getAs[Int]("Accident_Severity_idx")
-        sev == 1 || sev == 2
+        sev == 1 || sev == 0
       })
       .map(row => (row.getAs[Int]("Weather_Conditions_idx"), 1))
       .reduceByKey(_ + _)
