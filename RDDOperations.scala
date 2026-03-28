@@ -11,7 +11,7 @@ object RDDOperations {
     val df = spark.read
       .option("header", "true")
       .option("inferSchema", "true")
-      .csv("C:/MAMP/htdocs/Nothor/Final_data (1).csv")
+      .csv("Final_data (1).csv")
 
     val rdd = df.rdd
 
