@@ -4,11 +4,11 @@ import org.apache.spark.ml.feature.{VectorAssembler, StandardScaler}
 import org.apache.spark.ml.classification.{LogisticRegression, DecisionTreeClassifier, RandomForestClassifier}
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 
-object MLOperations {
+object MLOperationsImproved {
   def main(args: Array[String]): Unit = {
 
     val spark = SparkSession.builder()
-      .appName("Phase 5 - Multiple ML Models with Scaling")
+      .appName("Improved ML Operations - Accident Severity")
       .master("local[*]")
       .getOrCreate()
 
@@ -20,26 +20,39 @@ object MLOperations {
     val dfRaw = spark.read
       .option("header", "true")
       .option("inferSchema", "true")
-      .csv("C:/MAMP/htdocs/Nothor/Final_data (1).csv")
-      // أو إذا الملف في نفس الفولدر:
-      // .csv("Final_data (1).csv")
+      .csv("Final_data (2).csv")
 
     println("=== Raw Schema ===")
     dfRaw.printSchema()
 
     // =========================================================
-    // 2) Select label + feature columns
+    // 2) Feature Engineering
     // =========================================================
-    // excluded:
-    // - Accident_Index (ID)
-    // - Accident_Severity_idx (label)
-    // - Number_of_Casualties to reduce leakage
-    // - any directly derived leakage columns
+    val dfFe = dfRaw
+      .withColumn(
+        "Is_Night",
+        when(col("Hour_of_Day") >= 18 || col("Hour_of_Day") <= 5, 1).otherwise(0)
+      )
+      .withColumn(
+        "High_Speed",
+        when(col("Speed_limit") >= 60, 1).otherwise(0)
+      )
+      .withColumn(
+        "Rush_Hour",
+        when(
+          col("Hour_of_Day").between(7, 9) || col("Hour_of_Day").between(16, 18),
+          1
+        ).otherwise(0)
+      )
+
+    // =========================================================
+    // 3) Select label + feature columns
+    //    Important:
+    //    - Removed Year to avoid temporal leakage
+    //    - Removed Latitude/Longitude direct usage
+    // =========================================================
     val candidateFeatureCols = Seq(
       "Speed_limit",
-      "Year",
-      "Latitude",
-      "Longitude",
       "Number_of_Vehicles",
       "Hour_of_Day",
       "Road_Type_idx",
@@ -49,19 +62,22 @@ object MLOperations {
       "Urban_or_Rural_Area_idx",
       "Day_of_Week_idx",
       "Time_Period_idx",
-      "High_Risk_Conditions"
+      "High_Risk_Conditions",
+      "Is_Night",
+      "High_Speed",
+      "Rush_Hour"
     )
 
-    val featureCols = candidateFeatureCols.filter(dfRaw.columns.contains)
+    val featureCols = candidateFeatureCols.filter(dfFe.columns.contains)
 
     println("=== Selected Feature Columns ===")
     featureCols.foreach(println)
 
     val requiredCols = ("Accident_Severity_idx" +: featureCols).distinct
-    val dfSelected = dfRaw.select(requiredCols.map(col): _*)
+    val dfSelected = dfFe.select(requiredCols.map(col): _*)
 
     // =========================================================
-    // 3) Basic ML cleaning
+    // 4) Basic ML cleaning
     // =========================================================
     val df = dfSelected
       .na.drop(Seq("Accident_Severity_idx"))
@@ -70,12 +86,12 @@ object MLOperations {
     println(s"=== Rows after ML cleaning: ${df.count()} ===")
 
     // =========================================================
-    // 4) Create label column
+    // 5) Create label column
     // =========================================================
     val dfLabeled = df.withColumn("label", col("Accident_Severity_idx").cast("double"))
 
     // =========================================================
-    // 5) Assemble features
+    // 6) Assemble features
     // =========================================================
     val assembler = new VectorAssembler()
       .setInputCols(featureCols.toArray)
@@ -87,7 +103,7 @@ object MLOperations {
     assembledDf.show(5, truncate = false)
 
     // =========================================================
-    // 6) Train / Test split
+    // 7) Train / Test split
     // =========================================================
     val Array(trainData, testData) = assembledDf.randomSplit(Array(0.7, 0.3), seed = 42)
 
@@ -95,7 +111,7 @@ object MLOperations {
     println(s"Test rows: ${testData.count()}")
 
     // =========================================================
-    // 7) Baseline model (majority class)
+    // 8) Baseline model (majority class)
     // =========================================================
     val majorityLabel = trainData
       .groupBy("label")
@@ -115,7 +131,7 @@ object MLOperations {
     println(s"\n=== Baseline Accuracy (majority class) = $baselineAccuracy ===")
 
     // =========================================================
-    // 8) Scaling for Logistic Regression only
+    // 9) Scaling for Logistic Regression only
     // =========================================================
     val scaler = new StandardScaler()
       .setInputCol("features")
@@ -128,7 +144,7 @@ object MLOperations {
     val scaledTestData = scalerModel.transform(testData)
 
     // =========================================================
-    // 9) Evaluators
+    // 10) Evaluators
     // =========================================================
     val accuracyEvaluator = new MulticlassClassificationEvaluator()
       .setLabelCol("label")
@@ -151,7 +167,7 @@ object MLOperations {
       .setMetricName("weightedRecall")
 
     // =========================================================
-    // 10) Logistic Regression (with scaling)
+    // 11) Logistic Regression
     // =========================================================
     println("\n==================================================")
     println("MODEL 1: Logistic Regression")
@@ -178,7 +194,7 @@ object MLOperations {
     println(s"Weighted Recall    = $lrRecall")
 
     // =========================================================
-    // 11) Decision Tree (without scaling)
+    // 12) Decision Tree
     // =========================================================
     println("\n==================================================")
     println("MODEL 2: Decision Tree")
@@ -204,7 +220,7 @@ object MLOperations {
     println(s"Weighted Recall    = $dtRecall")
 
     // =========================================================
-    // 12) Random Forest (without scaling)
+    // 13) Random Forest
     // =========================================================
     println("\n==================================================")
     println("MODEL 3: Random Forest")
@@ -213,8 +229,8 @@ object MLOperations {
     val rf = new RandomForestClassifier()
       .setLabelCol("label")
       .setFeaturesCol("features")
-      .setNumTrees(100)
-      .setMaxDepth(10)
+      .setNumTrees(150)
+      .setMaxDepth(12)
       .setSeed(42)
 
     val rfModel = rf.fit(trainData)
@@ -231,7 +247,7 @@ object MLOperations {
     println(s"Weighted Recall    = $rfRecall")
 
     // =========================================================
-    // 13) Comparison Summary
+    // 14) Comparison Summary
     // =========================================================
     println("\n==================================================")
     println("MODEL COMPARISON SUMMARY")
@@ -244,7 +260,7 @@ object MLOperations {
     println(f"${"Random Forest"}%-22s $rfAccuracy%-12.4f $rfF1%-12.4f $rfPrecision%-12.4f $rfRecall%-12.4f")
 
     // =========================================================
-    // 14) Best model selection
+    // 15) Best model selection
     // =========================================================
     val modelScores = Seq(
       ("Logistic Regression", lrAccuracy, lrF1),
@@ -260,7 +276,7 @@ object MLOperations {
     println(s"Best F1 Score = ${bestModel._3}")
 
     // =========================================================
-    // 15) Feature importances from Random Forest
+    // 16) Feature importances from Random Forest
     // =========================================================
     println("\n=== Random Forest Feature Importances ===")
     val importances = rfModel.featureImportances.toArray
@@ -271,7 +287,7 @@ object MLOperations {
     }
 
     // =========================================================
-    // 16) Confusion Matrix for Random Forest
+    // 17) Confusion Matrix for Random Forest
     // =========================================================
     println("\n=== Confusion Matrix (Random Forest) ===")
     rfPredictions
