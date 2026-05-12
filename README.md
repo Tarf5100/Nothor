@@ -58,5 +58,8 @@ MLOperationsImproved.main(Array())
 
 ---
 
-## Authors
-King Saud University – IT462 Big Data Project
+### Team Members
+- Lamya Alnahdi — 443202647
+- Maha Alruwais — 444200749
+- Maha Alsweed — 443200734
+- Tarfah Bin Moammar — 444200611
