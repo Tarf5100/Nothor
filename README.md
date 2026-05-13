@@ -59,7 +59,7 @@ MLOperationsImproved.main(Array())
 ---
 
 ### Team Members
-- Lamya Alnahdi — 443202647
-- Maha Alruwais — 444200749
-- Maha Alsweed — 443200734
-- Tarfah Bin Moammar — 444200611
+- Lamya Alnahdi 
+- Maha Alruwais 
+- Maha Alsweed 
+- Tarfah Bin Moammar
